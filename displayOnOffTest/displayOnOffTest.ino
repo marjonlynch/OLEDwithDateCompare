@@ -25,6 +25,8 @@
 RTC_Millis rtc;
 DateTime targetDate(2025, 8, 10, 8, 0, 0);
 
+const uint8_t   status_pin = 5;
+
 // The SSD1351 is connected like this (plus VCC plus GND)
 const uint8_t   OLED_pin_scl_sck        = 13;
 const uint8_t   OLED_pin_sda_mosi       = 11;
@@ -48,6 +50,8 @@ const uint16_t  OLED_Color_White        = 0xFFFF;
 // The colors we actually want to use
 uint16_t        OLED_Text_Color         = OLED_Color_White;
 uint16_t        OLED_Backround_Color    = OLED_Color_Black;
+
+uint8_t previous_minute = 60;
 
 // declare the display
 Adafruit_SSD1351 oled =
@@ -111,6 +115,14 @@ void displayUpTime() {
 
     DateTime timeRemaining (targetDate.unixtime() - now.unixtime());
 
+    if (timeRemaining.minute() < previous_minute) {
+        digitalWrite(status_pin, HIGH);
+        previous_minute = timeRemaining.minute();
+    }
+    delay(200);
+    digitalWrite(status_pin, LOW);
+
+
     Serial.print("Months:");Serial.println(timeRemaining.month());
     Serial.print("Days:");Serial.println(timeRemaining.day());
     Serial.print("hours:");Serial.println(timeRemaining.hour());
@@ -152,9 +164,14 @@ void displayUpTime() {
         days, hours, minutes, upSeconds
     );
     sprintf(newTitleString,"%s", "Roll Tide!");
-    sprintf(monthString, "%lu mos %lu days %lu hrs", timeRemaining.month(), timeRemaining.day(), timeRemaining.hour());
+    sprintf(monthString, "%lu mo %lu dy %lu hr %lu m", timeRemaining.month(), timeRemaining.day(), timeRemaining.hour(), timeRemaining.minute());
     sprintf(dayString, "%lu", timeRemaining.day());
     sprintf(hourString, "%lu", timeRemaining.hour());
+
+    Serial.print("strcmp(monthString,oldMonthsString):");Serial.println(strcmp(monthString,oldMonthsString));
+    Serial.print("monthString:");Serial.println(monthString);
+    Serial.print("oldMonthsString:");Serial.println(oldMonthsString);
+
 
     // has the time string changed since the last oled update?
     if (strcmp(monthString,oldMonthsString) != 0) {
@@ -202,6 +219,7 @@ void setup() {
 
     // button press pulls pin LOW so configure HIGH
     pinMode(Button_pin,INPUT_PULLUP);
+    pinMode(status_pin, OUTPUT);
 
     // use an interrupt to sense when the button is pressed
     attachInterrupt(digitalPinToInterrupt(Button_pin), senseButtonPressed, FALLING);
@@ -259,6 +277,6 @@ void loop() {
     }
 
     // no need to be in too much of a hurry
-    delay(100);
+    delay(10000);
    
 }
